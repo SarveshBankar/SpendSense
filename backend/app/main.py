@@ -8,8 +8,6 @@ from app.api.v1 import api_router
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import setup_logging
-from app.db.base import Base
-from app.db.session import engine
 
 settings = get_settings()
 setup_logging(settings.log_level)
@@ -53,8 +51,7 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created (if not existing)")
+    logger.info("SpendSense API started")
 
 
 @app.on_event("shutdown")

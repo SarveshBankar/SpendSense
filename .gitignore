@@ -18,6 +18,9 @@ venv/
 node_modules/
 frontend/dist/
 
+# Uploads
+uploads/
+
 # IDE
 .vscode/
 .idea/
