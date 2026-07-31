@@ -1,13 +1,14 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Home, List, Upload, User, LogOut,
-  Menu, ChevronDown, Search, Bell,
+  Menu, ChevronDown, Search, Bell, Sparkles,
   ChevronLeft, Target, BarChart3, FileText, Settings,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Background from '../components/ui/Background'
+import { notificationApi } from '../services/api'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: Home },
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/budgets', label: 'Budgets', icon: Target },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/reports', label: 'Reports', icon: FileText },
+  { to: '/copilot', label: 'Copilot', icon: Sparkles },
 ]
 
 const bottomItems = [
@@ -79,11 +81,30 @@ function SidebarItem({ to, label, icon: Icon, collapsed, onClick }: {
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  useEffect(() => {
+    let active = true
+    notificationApi
+      .list({ limit: 1 })
+      .then((res) => {
+        if (active) setUnreadCount(res.data.unread_count)
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [location.pathname])
+
+  const handleLogout = () => {
+    setProfileOpen(false)
+    logout()
+    window.location.href = '/login'
+  }
 
   return (
     <div className="min-h-screen bg-surface">
@@ -113,7 +134,7 @@ export default function DashboardLayout() {
                 </div>
                 <span className="font-bold text-base text-white tracking-tight">SpendSense</span>
               </div>
-              <button onClick={() => setCollapsed(true)} className="p-1 rounded-lg hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 transition-colors">
+              <button onClick={() => setCollapsed(!collapsed)} className="p-1 rounded-lg hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 transition-colors">
                 <ChevronLeft size={15} />
               </button>
             </>
@@ -207,7 +228,12 @@ export default function DashboardLayout() {
       </aside>
 
       {/* ── Main Content ── */}
-      <div className="lg:pl-[calc(56px+1rem)] transition-all duration-500" style={{ paddingLeft: collapsed ? 'calc(68px + 1rem)' : 'calc(56px + 1rem)' }}>
+      <div
+  className="transition-all duration-500"
+  style={{
+    paddingLeft: collapsed ? "84px" : "240px",
+  }}
+>
         <header className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20 bg-surface/80 backdrop-blur-2xl border-b border-[rgba(255,255,255,0.04)]">
           <div className="hidden lg:flex relative">
             <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -224,9 +250,17 @@ export default function DashboardLayout() {
           <div className="lg:hidden" />
 
           <div className="flex items-center gap-3">
-            <button className="relative p-2.5 rounded-xl hover:bg-white/[0.04] text-gray-500 transition-colors" title="Notifications">
+            <button
+              onClick={() => navigate('/notifications')}
+              className="relative p-2.5 rounded-xl hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 transition-colors"
+              title="Notifications"
+            >
               <Bell size={17} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-500 rounded-full ring-2 ring-surface" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-primary-500 rounded-full text-[9px] font-bold text-white ring-2 ring-surface flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
 
             <div className="relative">

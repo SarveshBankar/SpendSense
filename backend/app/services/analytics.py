@@ -2,7 +2,6 @@ import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.transaction import Transaction

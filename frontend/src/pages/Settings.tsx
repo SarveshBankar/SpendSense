@@ -32,6 +32,20 @@ const dateFormats = [
   { value: 'DD MMM YYYY', label: '30 Jul 2026' },
 ]
 
+function applyTheme(theme: string) {
+  document.documentElement.classList.toggle('dark', theme === 'dark')
+  document.documentElement.classList.toggle('light', theme === 'light')
+  localStorage.setItem('spendsense_theme', theme)
+}
+
+function applyCurrency(currency: string) {
+  localStorage.setItem('spendsense_currency', currency)
+}
+
+function applyDateFormat(format: string) {
+  localStorage.setItem('spendsense_date_format', format)
+}
+
 export default function Settings() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -42,7 +56,13 @@ export default function Settings() {
     setLoading(true)
     setFetchError(null)
     settingsApi.get()
-      .then((res) => setSettings(res.data))
+      .then((res) => {
+        const theme = localStorage.getItem('spendsense_theme') ?? 'dark'
+        setSettings({ ...res.data, theme })
+        applyTheme(theme)
+        applyCurrency(res.data.currency)
+        applyDateFormat(res.data.date_format)
+      })
       .catch(() => setFetchError('Failed to load settings'))
       .finally(() => setLoading(false))
   }
@@ -54,10 +74,16 @@ export default function Settings() {
     setTimeout(() => setMessage(null), 3000)
   }
 
-  const update = async (key: string, value: any) => {
+  const update = async (key: string, value: string | number | boolean) => {
+    if (key === 'theme' && typeof value === 'string') {
+      applyTheme(value)
+      setSettings((s) => (s ? { ...s, theme: value } : s))
+    }
     try {
       const res = await settingsApi.update({ [key]: value })
       setSettings(res.data.settings)
+      if (key === 'currency' && typeof value === 'string') applyCurrency(value)
+      if (key === 'date_format' && typeof value === 'string') applyDateFormat(value)
       showMsg('success', `${key.replace(/_/g, ' ')} updated`)
     } catch {
       showMsg('error', 'Failed to update')
@@ -66,13 +92,13 @@ export default function Settings() {
 
   if (fetchError) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
-          <AlertCircle size={28} className="text-red-400" />
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center border border-red-500/15">
+          <AlertCircle size={24} className="text-red-400" />
         </div>
         <p className="text-gray-400 text-sm max-w-xs">{fetchError}</p>
-        <button onClick={fetchSettings} className="btn-premium !px-5 !py-2.5 !text-xs">
-          <RefreshCw size={14} />
+        <button onClick={fetchSettings} className="btn-premium !px-4 !py-2 !text-xs">
+          <RefreshCw size={13} />
           Retry
         </button>
       </div>
@@ -81,9 +107,9 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-10 w-48 bg-white/5 rounded-2xl shimmer-overlay" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-5">
+        <div className="h-8 w-40 bg-white/5 rounded-2xl shimmer-overlay" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
         </div>
       </div>
@@ -93,67 +119,67 @@ export default function Settings() {
   const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
     <button
       onClick={() => onChange(!value)}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${value ? 'bg-primary-500' : 'bg-white/10'}`}
+      className={`relative w-10 h-6 rounded-full transition-colors duration-200 ${value ? 'bg-primary-500' : 'bg-white/10'}`}
     >
-      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${value ? 'translate-x-5' : ''}`} />
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${value ? 'translate-x-4' : ''}`} />
     </button>
   )
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      className="space-y-6"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-5"
     >
       <div>
-        <h1 className="hero-title text-white mb-2">Settings</h1>
-        <p className="text-gray-500 text-lg">Customize your experience</p>
+        <h1 className="hero-title text-white mb-1">Settings</h1>
+        <p className="text-gray-500 text-sm">Customize your experience</p>
       </div>
 
       {message && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium ${
-            message.type === 'success' ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium ${
+            message.type === 'success' ? 'bg-primary-500/10 text-primary-400 border border-primary-500/15' : 'bg-red-500/10 text-red-400 border border-red-500/15'
           }`}
         >
-          {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          {message.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
           {message.text}
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card hover>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-              <Sun size={16} className="text-amber-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+              <Sun size={14} className="text-amber-400" />
             </div>
             <h3 className="section-title text-white mb-0">Theme</h3>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             {['light', 'dark'].map((t) => (
               <button
                 key={t}
                 onClick={() => update('theme', t)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all ${
                   settings?.theme === t
                     ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-glow'
                     : 'bg-white/[0.03] text-gray-400 hover:bg-white/[0.06]'
                 }`}
               >
-                {t === 'light' ? <Sun size={15} /> : <Moon size={15} />}
+                {t === 'light' ? <Sun size={13} /> : <Moon size={13} />}
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
           </div>
         </Card>
 
-        <Card hover>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-2xl bg-primary-500/10 flex items-center justify-center">
-              <DollarSign size={16} className="text-primary-400" />
+        <Card>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-2xl bg-primary-500/10 flex items-center justify-center">
+              <DollarSign size={14} className="text-primary-400" />
             </div>
             <h3 className="section-title text-white mb-0">Currency</h3>
           </div>
@@ -168,28 +194,31 @@ export default function Settings() {
           </select>
         </Card>
 
-        <Card hover>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-2xl bg-accent-500/10 flex items-center justify-center">
-              <Globe size={16} className="text-accent-400" />
+        <Card>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-2xl bg-accent-500/10 flex items-center justify-center">
+              <Globe size={14} className="text-accent-400" />
             </div>
             <h3 className="section-title text-white mb-0">Language</h3>
           </div>
           <select
             value={settings?.language}
-            onChange={(e) => update('language', e.target.value)}
-            className="input-premium"
+            disabled
+            className="input-premium opacity-60 cursor-not-allowed"
           >
             {languages.map((l) => (
               <option key={l.code} value={l.code}>{l.label}</option>
             ))}
           </select>
+          <p className="text-xs text-gray-600 mt-2">
+            Localization is not available yet — additional languages coming soon.
+          </p>
         </Card>
 
-        <Card hover>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
-              <Calendar size={16} className="text-cyan-400" />
+        <Card>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-2xl bg-cyan-500/10 flex items-center justify-center">
+              <Calendar size={14} className="text-cyan-400" />
             </div>
             <h3 className="section-title text-white mb-0">Date Format</h3>
           </div>
@@ -204,44 +233,33 @@ export default function Settings() {
           </select>
         </Card>
 
-        <Card hover className="lg:col-span-2">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-2xl bg-purple-500/10 flex items-center justify-center">
-              <Bell size={16} className="text-purple-400" />
+        <Card className="lg:col-span-2">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+              <Bell size={14} className="text-purple-400" />
             </div>
             <h3 className="section-title text-white mb-0">Notifications</h3>
           </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <Mail size={15} className="text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Email Notifications</p>
-                  <p className="text-xs text-gray-500">Receive updates via email</p>
+          <div className="space-y-3">
+            {[
+              { icon: Mail, label: 'Email Notifications', desc: 'Receive updates via email', key: 'email_notifications' },
+              { icon: Smartphone, label: 'Push Notifications', desc: 'Receive push notifications', key: 'push_notifications' },
+              { icon: Bell, label: 'Weekly Report', desc: 'Get weekly spending report', key: 'weekly_report' },
+            ].map(({ icon: Icon, label, desc, key }) => (
+              <div key={key} className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-3">
+                  <Icon size={14} className="text-gray-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-300">{label}</p>
+                    <p className="text-xs text-gray-500">{desc}</p>
+                  </div>
                 </div>
+                <Toggle
+                  value={(settings as any)?.[key] ?? false}
+                  onChange={(v) => update(key, v)}
+                />
               </div>
-              <Toggle value={settings?.email_notifications ?? true} onChange={(v) => update('email_notifications', v)} />
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <Smartphone size={15} className="text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Push Notifications</p>
-                  <p className="text-xs text-gray-500">Receive push notifications</p>
-                </div>
-              </div>
-              <Toggle value={settings?.push_notifications ?? true} onChange={(v) => update('push_notifications', v)} />
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <Bell size={15} className="text-gray-500" />
-                <div>
-                  <p className="text-sm font-medium text-gray-300">Weekly Report</p>
-                  <p className="text-xs text-gray-500">Get weekly spending report</p>
-                </div>
-              </div>
-              <Toggle value={settings?.weekly_report ?? false} onChange={(v) => update('weekly_report', v)} />
-            </div>
+            ))}
           </div>
         </Card>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Download, CheckCircle2, AlertCircle } from 'lucide-react'
 import Card from '../components/ui/Card'
@@ -19,10 +19,6 @@ export default function Reports() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  useEffect(() => {
-    reportApi.list().catch(() => {})
-  }, [])
 
   const showMsg = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
@@ -52,18 +48,26 @@ export default function Reports() {
 
   const download = async (format: 'csv' | 'excel' | 'pdf') => {
     try {
-      const params = reportType === 'monthly' ? { month: selectedMonth, year: selectedYear }
-        : reportType === 'yearly' ? { year: selectedYear }
-          : {}
+      let params: { month?: number; year?: number; start_date?: string; end_date?: string } = {}
+      let filename = `spendsense_${format}_${selectedYear}_${selectedMonth}`
+      if (reportType === 'monthly') {
+        params = { month: selectedMonth, year: selectedYear }
+      } else if (reportType === 'yearly') {
+        params = { year: selectedYear }
+        filename = `spendsense_${format}_${selectedYear}`
+      } else if (reportType === 'custom') {
+        params = { start_date: startDate, end_date: endDate }
+        filename = `spendsense_${format}_${startDate}_${endDate}`
+      }
       let res
-      if (format === 'csv') res = await reportApi.exportCsv(params.month, params.year)
-      else if (format === 'excel') res = await reportApi.exportExcel(params.month, params.year)
-      else res = await reportApi.exportPdf(params.month, params.year)
+      if (format === 'csv') res = await reportApi.exportCsv(params.month, params.year, params.start_date, params.end_date)
+      else if (format === 'excel') res = await reportApi.exportExcel(params.month, params.year, params.start_date, params.end_date)
+      else res = await reportApi.exportPdf(params.month, params.year, params.start_date, params.end_date)
 
       const url = URL.createObjectURL(new Blob([res.data]))
       const a = document.createElement('a')
       a.href = url
-      a.download = `spendsense_${format}_${selectedYear}_${selectedMonth}.${format === 'pdf' ? 'pdf' : format === 'excel' ? 'xlsx' : 'csv'}`
+      a.download = `${filename}.${format === 'pdf' ? 'pdf' : format === 'excel' ? 'xlsx' : 'csv'}`
       a.click()
       URL.revokeObjectURL(url)
     } catch {
@@ -73,31 +77,31 @@ export default function Reports() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      className="space-y-6"
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-5"
     >
       <div>
-        <h1 className="hero-title text-white mb-2">Reports</h1>
-        <p className="text-gray-500 text-lg">Generate financial reports from your data</p>
+        <h1 className="hero-title text-white mb-1">Reports</h1>
+        <p className="text-gray-500 text-sm">Generate financial reports from your data</p>
       </div>
 
       {message && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium ${
-            message.type === 'success' ? 'bg-primary-500/10 text-primary-400 border border-primary-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium ${
+            message.type === 'success' ? 'bg-primary-500/10 text-primary-400 border border-primary-500/15' : 'bg-red-500/10 text-red-400 border border-red-500/15'
           }`}
         >
-          {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          {message.type === 'success' ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
           {message.text}
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card hover className="space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Card className="space-y-4">
           <h3 className="section-title text-white">Generate Report</h3>
 
           <div className="flex gap-2">
@@ -184,32 +188,28 @@ export default function Reports() {
           </Button>
 
           {report && (
-            <div className="pt-3 border-t border-[rgba(255,255,255,0.06)]">
-              <p className="text-xs font-medium text-gray-500 mb-3">Download</p>
+            <div className="pt-3 border-t border-[rgba(255,255,255,0.05)]">
+              <p className="text-xs font-medium text-gray-500 mb-2">Download</p>
               <div className="flex gap-2">
-                <button onClick={() => download('csv')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/[0.03] text-gray-400 text-xs font-medium rounded-2xl hover:bg-white/[0.06] transition-colors">
-                  <Download size={12} /> CSV
-                </button>
-                <button onClick={() => download('excel')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/[0.03] text-gray-400 text-xs font-medium rounded-2xl hover:bg-white/[0.06] transition-colors">
-                  <Download size={12} /> Excel
-                </button>
-                <button onClick={() => download('pdf')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-white/[0.03] text-gray-400 text-xs font-medium rounded-2xl hover:bg-white/[0.06] transition-colors">
-                  <Download size={12} /> PDF
-                </button>
+                {(['csv', 'excel', 'pdf'] as const).map((f) => (
+                  <button key={f} onClick={() => download(f)} className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white/[0.03] text-gray-400 text-xs font-medium rounded-2xl hover:bg-white/[0.06] transition-colors">
+                    <Download size={11} /> {f.toUpperCase()}
+                  </button>
+                ))}
               </div>
             </div>
           )}
         </Card>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-5">
           {generating ? (
             <div className="space-y-4">
               <SkeletonCard />
             </div>
           ) : report ? (
             <>
-              <Card hover>
-                <div className="flex items-center justify-between mb-4">
+              <Card>
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="section-title text-white mb-0">
                     {report?.report?.summary?.period ?? 'Financial'} Report
                   </h3>
@@ -217,45 +217,45 @@ export default function Reports() {
                     Generated: {new Date(report?.generated_at ?? new Date()).toLocaleString()}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Income</p>
                     <p className="text-sm font-bold text-primary-400">{formatCurrency(report?.report?.summary?.total_income ?? 0)}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Expense</p>
                     <p className="text-sm font-bold text-red-400">{formatCurrency(report?.report?.summary?.total_expense ?? 0)}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Net</p>
                     <p className={`text-sm font-bold ${(report?.report?.summary?.net_savings ?? 0) >= 0 ? 'text-primary-400' : 'text-red-400'}`}>
                       {formatCurrency(report?.report?.summary?.net_savings ?? 0)}
                     </p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Savings Rate</p>
                     <p className="text-sm font-bold text-accent-400">{report?.report?.summary?.savings_rate ?? 0}%</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Txns</p>
                     <p className="text-sm font-bold text-gray-200">{report?.report?.summary?.total_transactions ?? 0}</p>
                   </div>
-                  <div className="bg-white/[0.03] rounded-2xl p-3">
+                  <div className="bg-white/[0.03] rounded-2xl p-2.5">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Health</p>
                     <p className="text-sm font-bold text-purple-400">{report?.report?.summary?.health_score ?? 0}/100</p>
                   </div>
                 </div>
               </Card>
 
-              <Card hover>
-                <h3 className="section-title text-white mb-4">Category Breakdown</h3>
-                <div className="space-y-3">
-                    {(report?.report?.category_breakdown ?? []).slice(0, 10).map((cat: any) => {
-                      const total = report?.report?.summary?.total_expense ?? 0
-                      const pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : 0
+              <Card>
+                <h3 className="section-title text-white mb-3">Category Breakdown</h3>
+                <div className="space-y-2.5">
+                  {(report?.report?.category_breakdown ?? []).slice(0, 10).map((cat) => {
+                    const total = report?.report?.summary?.total_expense ?? 0
+                    const pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : 0
                     return (
                       <div key={cat.category}>
-                        <div className="flex justify-between text-xs mb-1">
+                        <div className="flex justify-between text-xs mb-0.5">
                           <span className="font-medium text-gray-300">{cat.category}</span>
                           <span className="text-gray-500">{formatCurrency(cat.amount)} ({pct}%)</span>
                         </div>
@@ -271,20 +271,20 @@ export default function Reports() {
                 </div>
               </Card>
 
-              <Card hover>
-                  <h3 className="section-title text-white mb-4">Monthly Breakdown</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-gray-500 border-b border-[rgba(255,255,255,0.06)]">
-                          <th className="text-left py-2 font-medium">Month</th>
-                          <th className="text-right py-2 font-medium">Income</th>
-                          <th className="text-right py-2 font-medium">Expense</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(report?.report?.monthly_breakdown ?? []).map((m: any) => (
-                        <tr key={m.month} className="border-b border-[rgba(255,255,255,0.04)]">
+              <Card>
+                <h3 className="section-title text-white mb-3">Monthly Breakdown</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-gray-500 border-b border-[rgba(255,255,255,0.05)]">
+                        <th className="text-left py-2 font-medium">Month</th>
+                        <th className="text-right py-2 font-medium">Income</th>
+                        <th className="text-right py-2 font-medium">Expense</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(report?.report?.monthly_breakdown ?? []).map((m) => (
+                        <tr key={m.month} className="border-b border-[rgba(255,255,255,0.03)]">
                           <td className="py-2 font-medium text-gray-300">{m.month}</td>
                           <td className="py-2 text-right font-semibold text-primary-400">{formatCurrency(m.income)}</td>
                           <td className="py-2 text-right font-semibold text-red-400">{formatCurrency(m.expense)}</td>
@@ -296,10 +296,10 @@ export default function Reports() {
               </Card>
 
               {(report?.report?.top_recommendations?.length ?? 0) > 0 && (
-                <Card hover>
-                  <h3 className="section-title text-white mb-3">Recommendations</h3>
-                  <ul className="space-y-2">
-                      {(report?.report?.top_recommendations ?? []).map((rec, i) => (
+                <Card>
+                  <h3 className="section-title text-white mb-2">Recommendations</h3>
+                  <ul className="space-y-1.5">
+                    {(report?.report?.top_recommendations ?? []).map((rec, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mt-1.5 shrink-0" />
                         {rec}
@@ -310,9 +310,9 @@ export default function Reports() {
               )}
             </>
           ) : (
-            <Card className="p-12 text-center">
-              <div className="w-16 h-16 rounded-3xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4 border border-[rgba(255,255,255,0.06)]">
-                <FileText size={28} className="text-gray-500" />
+            <Card className="p-10 text-center">
+              <div className="w-14 h-14 rounded-3xl bg-white/[0.03] flex items-center justify-center mx-auto mb-3 border border-[rgba(255,255,255,0.06)]">
+                <FileText size={24} className="text-gray-500" />
               </div>
               <h3 className="text-base font-semibold text-gray-200 mb-1">No report generated</h3>
               <p className="text-sm text-gray-500">Select a report type and click generate</p>

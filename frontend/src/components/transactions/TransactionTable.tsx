@@ -23,35 +23,35 @@ export default function TransactionTable({ transactions = [], loading, page, tot
 
   return (
     <div>
-      <div className="overflow-x-auto -mx-6">
+      <div className="overflow-x-auto -mx-5">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[rgba(255,255,255,0.06)]">
-              <th className="pb-3 px-6 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-[0.08em]">Date</th>
-              <th className="pb-3 px-6 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-[0.08em]">Description</th>
-              <th className="pb-3 px-6 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-[0.08em]">Category</th>
-              <th className="pb-3 px-6 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-[0.08em]">Amount</th>
+            <tr className="border-b border-[rgba(255,255,255,0.05)]">
+              <th className="pb-2.5 px-5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-[0.06em]">Date</th>
+              <th className="pb-2.5 px-5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-[0.06em]">Description</th>
+              <th className="pb-2.5 px-5 text-left text-[10px] font-semibold text-gray-500 uppercase tracking-[0.06em]">Category</th>
+              <th className="pb-2.5 px-5 text-right text-[10px] font-semibold text-gray-500 uppercase tracking-[0.06em]">Amount</th>
             </tr>
           </thead>
           <tbody>
             {items.map((tx, i) => (
               <motion.tr
                 key={tx.id}
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.025, duration: 0.3, ease: 'easeOut' }}
-                className="border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-white/[0.02] transition-colors group"
+                transition={{ delay: i * 0.02, duration: 0.25, ease: 'easeOut' }}
+                className="border-b border-[rgba(255,255,255,0.03)] last:border-0 hover:bg-white/[0.02] transition-colors group"
               >
-                <td className="py-3.5 px-6 text-gray-400 whitespace-nowrap text-xs font-medium">{tx.date}</td>
-                <td className="py-3.5 px-6 text-gray-200 font-medium max-w-xs truncate">{tx.description}</td>
-                <td className="py-3.5 px-6">
+                <td className="py-3 px-5 text-gray-400 whitespace-nowrap text-xs font-medium">{tx.date}</td>
+                <td className="py-3 px-5 text-gray-200 font-medium max-w-xs truncate">{tx.description}</td>
+                <td className="py-3 px-5">
                   <span className="badge-premium-info">{tx.category || 'Uncategorized'}</span>
                 </td>
-                <td className="py-3.5 px-6 text-right whitespace-nowrap">
-                  <span className={`inline-flex items-center gap-1.5 font-semibold ${
+                <td className="py-3 px-5 text-right whitespace-nowrap">
+                  <span className={`inline-flex items-center gap-1 font-semibold text-sm ${
                     tx.transaction_type === 'credit' ? 'text-primary-400' : 'text-red-400'
                   }`}>
-                    {tx.transaction_type === 'credit' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+                    {tx.transaction_type === 'credit' ? <ArrowUpRight size={13} /> : <ArrowDownLeft size={13} />}
                     ₹{tx.amount.toLocaleString('en-IN')}
                   </span>
                 </td>
@@ -62,7 +62,7 @@ export default function TransactionTable({ transactions = [], loading, page, tot
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-5 border-t border-[rgba(255,255,255,0.06)] mt-2">
+        <div className="flex items-center justify-between pt-4 border-t border-[rgba(255,255,255,0.05)] mt-2">
           <p className="text-xs text-gray-500 font-medium">
             Page {page} of {totalPages}
           </p>
@@ -70,16 +70,16 @@ export default function TransactionTable({ transactions = [], loading, page, tot
             <button
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              className="btn-ghost-premium !px-3 !py-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-ghost-premium !px-2.5 !py-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={15} />
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => onPageChange(page + 1)}
-              className="btn-ghost-premium !px-3 !py-2 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-ghost-premium !px-2.5 !py-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>

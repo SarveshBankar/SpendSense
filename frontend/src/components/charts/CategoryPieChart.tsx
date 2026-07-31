@@ -1,5 +1,4 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import Card from '../ui/Card'
 import type { Transaction } from '../../services/api'
 
 const COLORS = [
@@ -13,17 +12,18 @@ interface CatData { name: string; value: number }
 export default function CategoryPieChart({ transactions = [] }: { transactions?: Transaction[] }) {
   const data = buildCategoryData(transactions ?? [])
   if (data.length === 0) return null
+
   return (
-    <Card className="p-6">
-      <h3 className="text-sm font-semibold text-slate-800 mb-5">Expense by Category</h3>
-      <ResponsiveContainer width="100%" height={280}>
+    <div>
+      <h3 className="text-sm font-semibold text-gray-200 mb-4">Expense by Category</h3>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={58}
-            outerRadius={92}
+            innerRadius={54}
+            outerRadius={84}
             paddingAngle={3}
             dataKey="value"
             strokeWidth={0}
@@ -33,17 +33,18 @@ export default function CategoryPieChart({ transactions = [] }: { transactions?:
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{ fontSize: 12, borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+            contentStyle={{ fontSize: 12, borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', background: '#16161D', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
             formatter={(v: number, n: string) => [`₹${v.toLocaleString('en-IN')}`, n]}
+            labelStyle={{ color: '#e5e7eb' }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+            wrapperStyle={{ fontSize: 11, paddingTop: 8, color: '#9ca3af' }}
             iconType="circle"
             iconSize={8}
           />
         </PieChart>
       </ResponsiveContainer>
-    </Card>
+    </div>
   )
 }
 

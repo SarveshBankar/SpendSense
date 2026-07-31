@@ -3,6 +3,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 30000,
 })
 
 api.interceptors.request.use((config) => {
@@ -20,7 +21,26 @@ api.interceptors.response.use(
       localStorage.removeItem('spendsense_token')
       localStorage.removeItem('spendsense_user')
       window.location.href = '/login'
+      return Promise.reject(err)
     }
+
+    const errorInfo = {
+      url: err.config?.url,
+      method: err.config?.method,
+      status: err.response?.status,
+      message: err.message,
+      timestamp: new Date().toISOString(),
+    }
+
+    try {
+      const stored = localStorage.getItem('spendsense_api_errors')
+      const errors = stored ? JSON.parse(stored) : []
+      errors.push(errorInfo)
+      if (errors.length > 50) errors.shift()
+      localStorage.setItem('spendsense_api_errors', JSON.stringify(errors))
+    } catch {
+    }
+
     return Promise.reject(err)
   },
 )
@@ -58,7 +78,13 @@ export interface Statement {
   file_type: string
   file_size: number
   status: string
+  password_protected: boolean
   uploaded_at: string
+}
+
+export interface ParseErrorDetail {
+  code?: string
+  message?: string
 }
 
 export interface Transaction {
@@ -96,7 +122,6 @@ export interface CategorizeSummary {
   category_wise: { category: string; count: number }[]
 }
 
-// Auth
 export const authApi = {
   register: (data: RegisterPayload) =>
     api.post<TokenResponse>('/auth/register', data),
@@ -104,7 +129,6 @@ export const authApi = {
     api.post<TokenResponse>('/auth/login', data),
 }
 
-// Statements
 export const statementApi = {
   list: () => api.get<{ statements: Statement[]; total: number }>('/statements'),
   upload: (file: File) => {
@@ -114,13 +138,12 @@ export const statementApi = {
       '/statements/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } }
     )
   },
-  parse: (id: string) =>
-    api.post<ParseResult>(`/statements/${id}/parse`),
+  parse: (id: string, password?: string) =>
+    api.post<ParseResult>(`/statements/${id}/parse`, password ? { password } : undefined),
   delete: (id: string) =>
     api.delete<{ message: string }>(`/statements/${id}`),
 }
 
-// Insights
 export interface InsightCard {
   type: string
   label: string
@@ -184,7 +207,6 @@ export interface InsightsResponse {
   statistics: Statistics
 }
 
-// Transactions
 export const transactionApi = {
   list: (params?: Record<string, any>) =>
     api.get<{ transactions: Transaction[]; total: number }>('/transactions', { params }),
@@ -192,7 +214,6 @@ export const transactionApi = {
     api.post<CategorizeSummary>('/transactions/categorize'),
 }
 
-// Budgets
 export interface Budget {
   id: string
   user_id: string
@@ -243,7 +264,6 @@ export const budgetApi = {
     api.delete<{ message: string }>(`/budgets/${id}`),
 }
 
-// Goals
 export interface SavingsGoal {
   id: string
   user_id: string
@@ -290,7 +310,6 @@ export const goalApi = {
     api.delete<{ message: string }>(`/goals/${id}`),
 }
 
-// Analytics
 export interface AnalyticsKPIs {
   total_income: number
   total_expense: number
@@ -407,7 +426,6 @@ export const analyticsApi = {
     api.get<AnalyticsResponse>('/analytics', { params }),
 }
 
-// Profile
 export interface ProfileResponse {
   id: string
   full_name: string
@@ -440,7 +458,6 @@ export const profileApi = {
     api.put<{ message: string }>('/profile/password', data),
 }
 
-// Settings
 export interface SettingsResponse {
   currency: string
   language: string
@@ -467,7 +484,6 @@ export const settingsApi = {
     api.put<{ message: string; settings: SettingsResponse }>('/settings', data),
 }
 
-// Reports
 export interface ReportSummary {
   period: string
   total_income: number
@@ -485,12 +501,24 @@ export interface ReportSummary {
   health_score: number | null
 }
 
+export interface MonthlyBreakdownItem {
+  month: string
+  income: number
+  expense: number
+}
+
+export interface MerchantBreakdownItem {
+  merchant: string
+  amount: number
+  transaction_count: number
+}
+
 export interface ReportData {
   summary: ReportSummary
-  monthly_breakdown: Record<string, any>[]
-  category_breakdown: Record<string, any>[]
-  merchant_breakdown: Record<string, any>[]
-  daily_trends: Record<string, any>[]
+  monthly_breakdown: MonthlyBreakdownItem[]
+  category_breakdown: CategoryBreakdown[]
+  merchant_breakdown: MerchantBreakdownItem[]
+  daily_trends: DailyTrend[]
   top_recommendations: string[]
 }
 
@@ -512,17 +540,93 @@ export const reportApi = {
     api.get<ReportResponse>('/reports/yearly', { params: { year } }),
   custom: (start_date: string, end_date: string) =>
     api.get<ReportResponse>('/reports/custom', { params: { start_date, end_date } }),
-  exportCsv: (month?: number, year?: number) =>
-    api.get('/reports/export/csv', { params: { month, year }, responseType: 'blob' }),
-  exportExcel: (month?: number, year?: number) =>
-    api.get('/reports/export/excel', { params: { month, year }, responseType: 'blob' }),
-  exportPdf: (month?: number, year?: number) =>
-    api.get('/reports/export/pdf', { params: { month, year }, responseType: 'blob' }),
+  exportCsv: (month?: number, year?: number, start_date?: string, end_date?: string) =>
+    api.get('/reports/export/csv', {
+      params: { month, year, start_date, end_date },
+      paramsSerializer: { indexes: null },
+      responseType: 'blob',
+    }),
+  exportExcel: (month?: number, year?: number, start_date?: string, end_date?: string) =>
+    api.get('/reports/export/excel', {
+      params: { month, year, start_date, end_date },
+      paramsSerializer: { indexes: null },
+      responseType: 'blob',
+    }),
+  exportPdf: (month?: number, year?: number, start_date?: string, end_date?: string) =>
+    api.get('/reports/export/pdf', {
+      params: { month, year, start_date, end_date },
+      paramsSerializer: { indexes: null },
+      responseType: 'blob',
+    }),
 }
 
-// Insights
 export const insightApi = {
   get: () => api.get<InsightsResponse>('/insights'),
+}
+
+export interface CopilotMessageRequest {
+  message: string
+}
+
+export interface CopilotMessageResponse {
+  reply: string
+}
+
+export interface CopilotConversationMessage {
+  id: string
+  role: string
+  content: string
+  created_at: string
+}
+
+export interface CopilotHistoryResponse {
+  messages: CopilotConversationMessage[]
+}
+
+export interface SuggestedPrompt {
+  label: string
+  query: string
+}
+
+export interface SuggestedPromptsResponse {
+  prompts: SuggestedPrompt[]
+}
+
+export const copilotApi = {
+  chat: (data: CopilotMessageRequest) =>
+    api.post<CopilotMessageResponse>('/copilot/chat', data),
+  history: () =>
+    api.get<CopilotHistoryResponse>('/copilot/history'),
+  clear: () =>
+    api.delete<{ message: string }>('/copilot/history'),
+  suggestions: () =>
+    api.get<SuggestedPromptsResponse>('/copilot/suggestions'),
+}
+
+export interface Notification {
+  id: string
+  type: string
+  title: string
+  message: string
+  severity: string
+  read: boolean
+  metadata_json: string | null
+  created_at: string
+}
+
+export interface NotificationListResponse {
+  notifications: Notification[]
+  unread_count: number
+  total: number
+}
+
+export const notificationApi = {
+  list: (params?: { skip?: number; limit?: number }) =>
+    api.get<NotificationListResponse>('/notifications', { params }),
+  markRead: (id: string) =>
+    api.patch<{ message: string }>(`/notifications/${id}/read`),
+  markAllRead: () =>
+    api.post<{ message: string; marked: number }>('/notifications/mark-all-read'),
 }
 
 export default api

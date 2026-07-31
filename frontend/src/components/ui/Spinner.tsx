@@ -1,14 +1,17 @@
 import { Loader2 } from 'lucide-react'
 
 interface SpinnerProps {
-  size?: number
+  size?: 'sm' | 'md' | 'lg'
   className?: string
 }
 
-export default function Spinner({ size = 24, className = '' }: SpinnerProps) {
+const sizeMap = { sm: 16, md: 24, lg: 40 }
+
+export default function Spinner({ size = 'md', className = '' }: SpinnerProps) {
   return (
-    <div className="flex items-center justify-center py-8">
-      <Loader2 size={size} className={`text-primary-400 animate-spin ${className}`} />
-    </div>
+    <Loader2
+      size={sizeMap[size]}
+      className={`animate-spin text-primary-400 ${className}`}
+    />
   )
 }

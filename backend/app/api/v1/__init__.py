@@ -11,6 +11,9 @@ from app.api.v1.analytics import router as analytics_router
 from app.api.v1.profile import router as profile_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.reports import router as reports_router
+from app.api.v1.copilot import router as copilot_router
+from app.api.v1.notifications import router as notifications_router
+from app.api.v1.anomalies import router as anomalies_router
 
 api_router = APIRouter()
 api_router.include_router(health_router, tags=["health"])
@@ -24,3 +27,6 @@ api_router.include_router(analytics_router)
 api_router.include_router(profile_router)
 api_router.include_router(settings_router)
 api_router.include_router(reports_router)
+api_router.include_router(copilot_router)
+api_router.include_router(notifications_router)
+api_router.include_router(anomalies_router)

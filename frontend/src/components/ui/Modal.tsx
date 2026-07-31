@@ -17,22 +17,22 @@ export default function Modal({ open, onClose, children, title }: ModalProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
           />
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 20 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="relative bg-[#111113] border border-[rgba(255,255,255,0.08)] rounded-4xl shadow-glass-xl w-full max-w-md p-7 z-10"
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="relative bg-card border border-[rgba(255,255,255,0.07)] rounded-4xl shadow-elevated w-full max-w-md p-6 z-10"
           >
             {title && (
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">{title}</h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-bold text-white">{title}</h2>
                 <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-white/[0.04] text-gray-500 hover:text-gray-300 transition-colors">
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
             )}

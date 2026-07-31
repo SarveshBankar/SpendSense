@@ -19,6 +19,7 @@ import {
   analyticsApi,
   type AnalyticsResponse,
   type MerchantSpending,
+  type MonthlyTrend,
   type SubscriptionInfo,
   type CalendarDay,
 } from '../services/api'
@@ -38,7 +39,15 @@ function kpiLabel(v: number) {
   return v.toLocaleString('en-IN', { maximumFractionDigits: 0 })
 }
 
-function StatCard({ label, value, icon, color, trend }: any) {
+interface StatCardProps {
+  label: string
+  value: string
+  icon?: React.ReactNode
+  color?: string
+  trend?: number
+}
+
+function StatCard({ label, value, icon, color = 'from-primary-500 to-primary-600', trend }: StatCardProps) {
   return (
     <Card hover className="relative overflow-hidden">
       <div className={`absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br ${color} opacity-5 blur-3xl -translate-y-1/2 translate-x-1/2`} />
@@ -61,12 +70,17 @@ function StatCard({ label, value, icon, color, trend }: any) {
   )
 }
 
-function CustomTooltip({ active, payload, label, formatter }: any) {
-  if (!active || !payload) return null
+function CustomTooltip({ active, payload, label, formatter }: {
+  active?: boolean
+  payload?: { name: string; value: number; color: string }[]
+  label?: string
+  formatter: (v: number) => string
+}) {
+  if (!active || !payload?.length) return null
   return (
-    <div className="bg-[#1A1A1E] border border-[rgba(255,255,255,0.08)] rounded-3xl shadow-elevated px-4 py-3 text-xs">
-      <p className="font-semibold text-gray-200 mb-1.5">{label}</p>
-      {payload.map((p: any, i: number) => (
+    <div className="bg-gray-900/95 border border-white/10 rounded-xl px-4 py-3 shadow-2xl backdrop-blur-sm">
+      <p className="text-xs font-medium text-gray-400 mb-1.5">{label}</p>
+      {payload.map((p, i: number) => (
         <div key={i} className="flex items-center gap-2 mb-0.5">
           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
           <span className="text-gray-500">{p.name}: </span>
@@ -303,17 +317,17 @@ export default function Analytics() {
     setLoading(true)
     setFetchError(null)
     try {
-      const params: Record<string, any> = {}
+      const params: Record<string, number | string> = {}
       if (month) params.month = month
       if (year) params.year = year
       if (category) params.category = category
       if (merchant) params.merchant = merchant
       const res = await analyticsApi.get(params)
-      const d = res?.data ?? null as any
+      const d = res?.data ?? null
       setData(d)
       const cats = new Set<string>()
       const mers = new Set<string>()
-      ;(d?.merchant_spending ?? []).forEach((m: any) => {
+      ;(d?.merchant_spending ?? []).forEach((m: MerchantSpending) => {
         if (m?.category) cats.add(m.category)
         if (m?.merchant) mers.add(m.merchant)
       })
@@ -329,16 +343,14 @@ export default function Analytics() {
 
   const exportCSV = () => {
     if (!data) return
-    const d = data as any
     const rows = [['Metric', 'Value']]
-    const k = d.kpis
-    if (k) Object.entries(k).forEach(([key, val]) => rows.push([key, String(val)]))
+    if (data.kpis) Object.entries(data.kpis).forEach(([key, val]) => rows.push([key, String(val)]))
     rows.push([], ['Monthly Trends'], ['Month', 'Income', 'Expense', 'Net'])
-    ;(d.monthly_trends ?? []).forEach((t: any) => rows.push([t.month, String(t.income), String(t.expense), String(t.net)]))
+    ;(data.monthly_trends ?? []).forEach((t: MonthlyTrend) => rows.push([t.month, String(t.income), String(t.expense), String(t.net)]))
     rows.push([], ['Merchant Spending'], ['Merchant', 'Total', 'Transactions', 'Avg Amount', 'Category'])
-    ;(d.merchant_spending ?? []).forEach((m: any) => rows.push([m.merchant, String(m.total), String(m.transaction_count), String(m.avg_amount), m.category || '']))
+    ;(data.merchant_spending ?? []).forEach((m: MerchantSpending) => rows.push([m.merchant, String(m.total), String(m.transaction_count), String(m.avg_amount), m.category || '']))
     rows.push([], ['Subscriptions'], ['Merchant', 'Monthly Avg', 'Occurrences', 'Confidence'])
-    ;(d.subscriptions ?? []).forEach((s: any) => rows.push([s.merchant, String(s.monthly_avg), String(s.occurrences), s.confidence]))
+    ;(data.subscriptions ?? []).forEach((s: SubscriptionInfo) => rows.push([s.merchant, String(s.monthly_avg), String(s.occurrences), s.confidence]))
 
     const csv = rows.map((r) => r.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -349,7 +361,7 @@ export default function Analytics() {
     URL.revokeObjectURL(url)
   }
 
-  const fmtCurrency = (v: number) => formatCurrency(v)
+  const fmtCurrency = formatCurrency
 
   const monthlyChartData = data?.monthly_trends ?? []
   const cashFlowData = data?.cash_flow ?? []

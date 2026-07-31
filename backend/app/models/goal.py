@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Float, DateTime, ForeignKey, Uuid
+from sqlalchemy import String, Float, DateTime, ForeignKey, Uuid, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -23,4 +23,8 @@ class SavingsGoal(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        Index("ix_goals_user_created", "user_id", "created_at"),
     )

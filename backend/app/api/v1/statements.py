@@ -10,6 +10,7 @@ from app.schemas.statement import (
     StatementUploadResponse,
     StatementListResponse,
     StatementDeleteResponse,
+    ParseRequest,
 )
 from app.schemas.transaction import ParseResultResponse
 from app.services.statement import StatementService
@@ -30,7 +31,15 @@ def _get_parser(db: Session = Depends(get_db)) -> StatementParserService:
     "/upload",
     response_model=StatementUploadResponse,
     status_code=201,
-    summary="Upload a bank statement (CSV or PDF)",
+    summary="Upload a bank statement",
+    description="Upload a CSV or PDF bank statement file. Maximum file size is 10 MB. "
+    "The file is validated, stored on disk, and a database record is created. "
+    "Returns a warning if a file with the same name was uploaded before.",
+    responses={
+        201: {"description": "File uploaded successfully"},
+        400: {"description": "Invalid file type or size exceeded"},
+        401: {"description": "Authentication required"},
+    },
 )
 def upload_statement(
     file: UploadFile = File(...),
@@ -43,7 +52,13 @@ def upload_statement(
 @router.get(
     "",
     response_model=StatementListResponse,
-    summary="List all statements for the current user",
+    summary="List all statements",
+    description="Returns a list of all bank statements uploaded by the current user, "
+    "including file metadata and processing status.",
+    responses={
+        200: {"description": "Statements retrieved"},
+        401: {"description": "Authentication required"},
+    },
 )
 def list_statements(
     current_user: User = Depends(get_current_user),
@@ -55,20 +70,42 @@ def list_statements(
 @router.post(
     "/{statement_id}/parse",
     response_model=ParseResultResponse,
-    summary="Parse a bank statement into transactions",
+    summary="Parse a statement into transactions",
+    description="Processes an uploaded statement file and extracts individual transactions. "
+    "Supports CSV and PDF formats. For password-protected PDFs, provide the password "
+    "in the request body. Previously parsed transactions for this statement "
+    "are replaced only on a successful parse. Each transaction is auto-categorized "
+    "using the rule engine.",
+    responses={
+        200: {"description": "Statement parsed successfully"},
+        400: {"description": "Password required, incorrect password, or unsupported file type"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Statement not found"},
+    },
 )
 def parse_statement(
     statement_id: uuid.UUID,
+    body: ParseRequest | None = None,
     current_user: User = Depends(get_current_user),
     parser: StatementParserService = Depends(_get_parser),
 ):
-    return parser.parse(current_user, statement_id)
+    return parser.parse(
+        current_user, statement_id, password=body.password if body else None
+    )
 
 
 @router.delete(
     "/{statement_id}",
     response_model=StatementDeleteResponse,
     summary="Delete a statement",
+    description="Deletes a statement and its file from disk. Associated transactions "
+    "are cascade-deleted from the database. Only the owner can delete their statements.",
+    responses={
+        200: {"description": "Statement deleted"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Not the owner of this statement"},
+        404: {"description": "Statement not found"},
+    },
 )
 def delete_statement(
     statement_id: uuid.UUID,

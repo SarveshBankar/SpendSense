@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -17,7 +17,17 @@ def _get_service(db: Session = Depends(get_db)) -> AnalyticsService:
 @router.get(
     "",
     response_model=InsightsResponse,
-    summary="Generate financial insights from user transactions",
+    summary="Generate financial insights",
+    description="Analyzes all user transactions and generates a comprehensive set of "
+    "financial insights including spending patterns, savings rate, category breakdown, "
+    "top merchants, suspicious transactions, subscription detection, and personalized "
+    "recommendations. Also computes a financial health score (0–100).",
+    responses={
+        200: {
+            "description": "Insights generated successfully",
+        },
+        401: {"description": "Authentication required"},
+    },
 )
 def get_insights(
     current_user: User = Depends(get_current_user),

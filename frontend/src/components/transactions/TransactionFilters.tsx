@@ -21,16 +21,16 @@ export default function TransactionFilters({ filters, onChange, categories = [] 
   const update = (patch: Partial<FiltersState>) => onChange({ ...filters, ...patch })
 
   return (
-    <div className="card-premium p-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+    <div className="card-premium p-4">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
             placeholder="Search transactions..."
             value={filters.search}
             onChange={(e) => update({ search: e.target.value })}
-            className="input-premium !pl-10"
+            className="input-premium !pl-9"
           />
         </div>
 
@@ -58,15 +58,19 @@ export default function TransactionFilters({ filters, onChange, categories = [] 
         <input
           type="date"
           value={filters.from}
+          max={filters.to || undefined}
           onChange={(e) => update({ from: e.target.value })}
           className="input-premium !w-auto"
+          title="From date"
         />
 
         <input
           type="date"
           value={filters.to}
+          min={filters.from || undefined}
           onChange={(e) => update({ to: e.target.value })}
           className="input-premium !w-auto"
+          title="To date"
         />
 
         <select

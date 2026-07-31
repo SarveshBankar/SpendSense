@@ -8,12 +8,20 @@ from app.core.security import (
     hash_password,
     verify_password,
     create_access_token,
+    create_refresh_token,
     decode_access_token,
+    decode_refresh_token,
 )
 from app.db.session import get_db
-from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.auth import UserCreate, UserLogin, UserResponse, TokenResponse
+from app.schemas.auth import (
+    UserCreate,
+    UserLogin,
+    UserResponse,
+    TokenResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+)
 
 _bearer = HTTPBearer()
 
@@ -33,9 +41,12 @@ class AuthService:
 
         pw_hash = hash_password(data.password)
         user = self.repo.create(self.db, data, pw_hash)
-        token = create_access_token(str(user.id))
+        access_token = create_access_token(str(user.id))
+        refresh_token = create_refresh_token(str(user.id))
         return TokenResponse(
-            access_token=token, user=UserResponse.model_validate(user)
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=UserResponse.model_validate(user),
         )
 
     def login(self, data: UserLogin) -> TokenResponse:
@@ -51,9 +62,41 @@ class AuthService:
                 detail="Account is deactivated",
             )
 
-        token = create_access_token(str(user.id))
+        access_token = create_access_token(str(user.id))
+        refresh_token = create_refresh_token(str(user.id))
         return TokenResponse(
-            access_token=token, user=UserResponse.model_validate(user)
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=UserResponse.model_validate(user),
+        )
+
+    def refresh(self, data: RefreshTokenRequest) -> RefreshTokenResponse:
+        try:
+            payload = decode_refresh_token(data.refresh_token)
+            user_id = payload.get("sub")
+            if not user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid refresh token",
+                )
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token",
+            )
+
+        user = self.repo.get_by_id(self.db, uuid.UUID(user_id))
+        if not user or not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or deactivated",
+            )
+
+        access_token = create_access_token(str(user.id))
+        refresh_token = create_refresh_token(str(user.id))
+        return RefreshTokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
         )
 
     def get_current_user(

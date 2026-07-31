@@ -1,10 +1,8 @@
 import uuid
-from pathlib import Path
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.statement import Statement
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.repositories.statement import StatementRepository
@@ -13,6 +11,10 @@ from app.schemas.transaction import ParseResultResponse, TransactionResponse
 from app.services.parsers.csv_parser import parse_csv
 from app.services.parsers.pdf_parser import parse_pdf
 from app.utils.file_storage import get_file_path
+from app.utils.pdf_security import (
+    PDFPasswordRequiredError,
+    PDFIncorrectPasswordError,
+)
 
 
 class StatementParserService:
@@ -22,7 +24,10 @@ class StatementParserService:
         self.tx_repo = TransactionRepository()
 
     def parse(
-        self, current_user: User, statement_id: uuid.UUID
+        self,
+        current_user: User,
+        statement_id: uuid.UUID,
+        password: str | None = None,
     ) -> ParseResultResponse:
         statement = self.stmt_repo.get_by_id(self.db, statement_id)
         if not statement:
@@ -36,8 +41,6 @@ class StatementParserService:
                 detail="You do not have permission to parse this statement",
             )
 
-        self.tx_repo.delete_by_statement(self.db, statement.id)
-
         file_path = get_file_path(
             str(current_user.id), statement.stored_file_name
         )
@@ -47,15 +50,26 @@ class StatementParserService:
                 detail="Statement file not found on disk",
             )
 
-        if statement.file_type == "csv":
-            parsed_rows, parse_errors = parse_csv(file_path)
-        elif statement.file_type == "pdf":
-            parsed_rows, parse_errors = parse_pdf(file_path)
-        else:
+        try:
+            if statement.file_type == "csv":
+                parsed_rows, parse_errors = parse_csv(file_path)
+            elif statement.file_type == "pdf":
+                parsed_rows, parse_errors = parse_pdf(file_path, password)
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unsupported file type: {statement.file_type}",
+                )
+        except PDFPasswordRequiredError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported file type: {statement.file_type}",
-            )
+                detail={"code": "PASSWORD_REQUIRED", "message": str(e)},
+            ) from e
+        except PDFIncorrectPasswordError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "INCORRECT_PASSWORD", "message": str(e)},
+            ) from e
 
         successful = 0
         db_transactions: list[Transaction] = []
@@ -81,6 +95,24 @@ class StatementParserService:
                     f"Row {row.get('row_index', '?')}: {e}"
                 )
 
+        if successful == 0:
+            statement.status = "failed"
+            self.db.commit()
+            if not parse_errors:
+                parse_errors = [
+                    "No transactions could be extracted from this statement. "
+                    "The file may be a scanned document or use an unsupported layout."
+                ]
+            return ParseResultResponse(
+                status="failed",
+                total_rows=len(parsed_rows) + len(parse_errors),
+                successful=0,
+                failed=len(parse_errors),
+                errors=parse_errors[:100],
+                transactions=[],
+            )
+
+        self.tx_repo.delete_by_statement(self.db, statement.id)
         self.tx_repo.bulk_create(self.db, db_transactions)
 
         statement.status = "completed"

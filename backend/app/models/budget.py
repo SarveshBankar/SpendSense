@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Uuid
+from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Uuid, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -22,4 +22,9 @@ class Budget(Base):
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        Index("ix_budgets_user_month_year", "user_id", "month", "year"),
+        Index("ix_budgets_created_at", "created_at"),
     )

@@ -1,8 +1,9 @@
-import re
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, field_validator
+
+from app.core.security import validate_password_strength
 
 
 class UserCreate(BaseModel):
@@ -20,23 +21,7 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def strong_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("password must be at least 8 characters")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError(
-                "password must contain at least one uppercase letter"
-            )
-        if not re.search(r"[a-z]", v):
-            raise ValueError(
-                "password must contain at least one lowercase letter"
-            )
-        if not re.search(r"\d", v):
-            raise ValueError("password must contain at least one digit")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-+]", v):
-            raise ValueError(
-                "password must contain at least one special character"
-            )
-        return v
+        return validate_password_strength(v)
 
 
 class UserLogin(BaseModel):
@@ -57,5 +42,16 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"

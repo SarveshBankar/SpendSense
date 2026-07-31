@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: spendsense-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=SpendSense
+      - DEBUG=False
+      - DATABASE_URL=sqlite:///./spendsense.db
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://localhost"]
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-to-a-long-random-secret-in-production}
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_MINUTES=60
+      - JWT_REFRESH_EXPIRATION_DAYS=7
+      - LOG_LEVEL=INFO
+      - UPLOAD_DIR=uploads
+      - UPLOAD_MAX_SIZE_MB=10
+      - RATE_LIMIT_ENABLED=True
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW_SECONDS=60
+      - SECURE_HEADERS_ENABLED=True
+    volumes:
+      - backend-data:/app/uploads
+      - backend-db:/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: spendsense-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+  backend-db:

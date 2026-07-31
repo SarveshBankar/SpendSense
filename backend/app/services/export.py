@@ -1,16 +1,12 @@
 import csv
 import io
-import uuid
 from datetime import datetime
-from collections import defaultdict
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.repositories.transaction import TransactionRepository
-from app.repositories.budget import BudgetRepository
-from app.repositories.goal import GoalRepository
 from app.services.analytics import AnalyticsService
 
 
@@ -18,13 +14,8 @@ class ExportService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = TransactionRepository()
-        self.budget_repo = BudgetRepository()
-        self.goal_repo = GoalRepository()
         self.analytics = AnalyticsService(db)
 
-    # ------------------------------------------------------------------ #
-    #  CSV Export
-    # ------------------------------------------------------------------ #
     def export_csv(self, current_user: User, month: int | None = None, year: int | None = None) -> str:
         txs = self._filtered(current_user, month, year)
         output = io.StringIO()
@@ -35,9 +26,6 @@ class ExportService:
                              t.category or "", t.merchant or "", t.payment_mode or "", t.balance or ""])
         return output.getvalue()
 
-    # ------------------------------------------------------------------ #
-    #  Excel Export
-    # ------------------------------------------------------------------ #
     def export_excel(self, current_user: User, month: int | None = None, year: int | None = None) -> bytes:
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
@@ -99,9 +87,6 @@ class ExportService:
         buf.seek(0)
         return buf.getvalue()
 
-    # ------------------------------------------------------------------ #
-    #  PDF Export
-    # ------------------------------------------------------------------ #
     def export_pdf(self, current_user: User, month: int | None = None, year: int | None = None) -> bytes:
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4

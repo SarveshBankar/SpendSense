@@ -23,16 +23,16 @@ export default function UploadZone({ onUpload }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFile(e.dataTransfer.files[0]) }}
       onClick={() => inputRef.current?.click()}
-      className={`relative overflow-hidden rounded-3xl border-2 border-dashed p-10 text-center cursor-pointer transition-all duration-300 ${
+      className={`relative overflow-hidden rounded-3xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-300 ${
         dragOver
-          ? 'border-primary-400 bg-primary-500/5 scale-[1.01]'
-          : 'border-[rgba(255,255,255,0.08)] hover:border-primary-500/30 hover:bg-primary-500/[0.02]'
+          ? 'border-primary-400 bg-primary-500/5 scale-[1.005]'
+          : 'border-[rgba(255,255,255,0.07)] hover:border-primary-500/25 hover:bg-primary-500/[0.02]'
       }`}
     >
       <input
@@ -44,11 +44,11 @@ export default function UploadZone({ onUpload }: Props) {
       />
 
       {uploading ? (
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-2">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-            className="w-10 h-10 border-[3px] border-primary-500/30 border-t-primary-500 rounded-full"
+            className="w-9 h-9 border-[3px] border-primary-500/30 border-t-primary-500 rounded-full"
           />
           <div>
             <p className="text-sm font-semibold text-gray-200">Uploading & parsing...</p>
@@ -56,9 +56,9 @@ export default function UploadZone({ onUpload }: Props) {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500/10 to-primary-600/10 flex items-center justify-center border border-primary-500/20">
-            <CloudUpload size={30} className="text-primary-400" />
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500/8 to-primary-600/8 flex items-center justify-center border border-primary-500/15">
+            <CloudUpload size={26} className="text-primary-400" />
           </div>
           <div>
             <p className="text-sm font-semibold text-gray-200">

@@ -11,9 +11,14 @@ class StatementResponse(BaseModel):
     file_type: str
     file_size: int
     status: str
+    password_protected: bool
     uploaded_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ParseRequest(BaseModel):
+    password: str | None = None
 
 
 class StatementUploadResponse(BaseModel):

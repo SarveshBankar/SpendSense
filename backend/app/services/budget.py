@@ -1,12 +1,11 @@
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from calendar import monthrange
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.models.transaction import Transaction
 from app.repositories.budget import BudgetRepository
 from app.repositories.transaction import TransactionRepository
 from app.schemas.budget import (
@@ -33,7 +32,7 @@ class BudgetService:
         month: int | None = None,
         year: int | None = None,
     ) -> BudgetListResponse:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         m = month or now.month
         y = year or now.year
 

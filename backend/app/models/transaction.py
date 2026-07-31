@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Text, Uuid
+from sqlalchemy import String, Integer, Float, DateTime, ForeignKey, Text, Uuid, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -50,4 +50,11 @@ class Transaction(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(timezone.utc)
+    )
+
+    __table_args__ = (
+        Index("ix_transactions_date", "date"),
+        Index("ix_transactions_type", "transaction_type"),
+        Index("ix_transactions_category", "category"),
+        Index("ix_transactions_stmt_row", "statement_id", "row_index"),
     )

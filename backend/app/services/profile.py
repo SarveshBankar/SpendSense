@@ -1,9 +1,7 @@
-import uuid
-
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password, verify_password
+from app.core.security import hash_password, verify_password, validate_password_strength
 from app.models.user import User
 from app.repositories.user import UserRepository
 from app.repositories.transaction import TransactionRepository
@@ -66,6 +64,13 @@ class ProfileService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Current password is incorrect",
+            )
+        try:
+            validate_password_strength(data.new_password)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
             )
         new_hash = hash_password(data.new_password)
         self.repo.update(self.db, current_user, {"password_hash": new_hash})

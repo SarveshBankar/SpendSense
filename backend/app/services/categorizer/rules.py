@@ -1,9 +1,3 @@
-CATEGORIES = [
-    "Food", "Groceries", "Shopping", "Fuel", "Travel",
-    "Bills", "Entertainment", "Healthcare", "Education",
-    "Salary", "Investment", "Rent", "Transfer", "ATM", "Others",
-]
-
 # (pattern, category, confidence, is_merchant)
 RULES: list[tuple[str, str, int, bool]] = [
     # ── Food ──────────────────────────────────────────────
@@ -15,7 +9,6 @@ RULES: list[tuple[str, str, int, bool]] = [
     ("mcdonalds", "Food", 95, True),
     ("mcdonald's", "Food", 95, True),
     ("kfc", "Food", 95, True),
-    ("subway", "Food", 92, True),
     ("subway", "Food", 92, True),
     ("burger king", "Food", 95, True),
     ("starbucks", "Food", 93, True),

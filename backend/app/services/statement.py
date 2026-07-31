@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models.user import User
 from app.repositories.statement import StatementRepository
 from app.schemas.statement import (
@@ -12,10 +13,10 @@ from app.schemas.statement import (
     StatementListResponse,
     StatementDeleteResponse,
 )
-from app.utils.file_storage import save_upload, delete_upload
+from app.utils.file_storage import validate_upload_file, save_upload, delete_file
+from app.utils.pdf_security import is_pdf_encrypted
 
-ALLOWED_EXTENSIONS = {".csv", ".pdf"}
-MAX_FILE_SIZE = 10 * 1024 * 1024
+settings = get_settings()
 
 
 class StatementService:
@@ -32,28 +33,7 @@ class StatementService:
                 detail="File name is required",
             )
 
-        ext = Path(filename).suffix.lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid file type '{ext}'. Only CSV and PDF files are allowed.",
-            )
-
-        file.file.seek(0, 2)
-        file_size = file.file.tell()
-        file.file.seek(0)
-
-        if file_size == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded file is empty",
-            )
-
-        if file_size > MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail="File size exceeds 10 MB limit",
-            )
+        stored_name, ext = validate_upload_file(file)
 
         existing_count = self.repo.count_by_original_name(
             self.db, current_user.id, filename
@@ -62,7 +42,16 @@ class StatementService:
         if existing_count > 0:
             warning = f"A file named '{filename}' has already been uploaded ({existing_count} time(s))"
 
-        stored_name, actual_size = save_upload(str(current_user.id), file)
+        file_path = save_upload(file, settings.upload_dir, stored_name)
+
+        file.file.seek(0, 2)
+        actual_size = file.file.tell()
+        file.file.seek(0)
+
+        password_protected = (
+            is_pdf_encrypted(file_path) if ext.lower() == ".pdf" else False
+        )
+
         statement = self.repo.create(
             self.db,
             current_user.id,
@@ -70,7 +59,14 @@ class StatementService:
             stored_name,
             ext.lstrip("."),
             actual_size,
+            password_protected=password_protected,
         )
+
+        if password_protected:
+            warning = (
+                f"{warning + ' ' if warning else ''}"
+                "This PDF is password protected. You'll need its password to parse it."
+            )
 
         return StatementUploadResponse(
             message="File uploaded successfully",
@@ -78,9 +74,7 @@ class StatementService:
             warning=warning,
         )
 
-    def list_statements(
-        self, current_user: User
-    ) -> StatementListResponse:
+    def list_statements(self, current_user: User) -> StatementListResponse:
         statements = self.repo.list_by_user(self.db, current_user.id)
         total = self.repo.count_by_user(self.db, current_user.id)
         return StatementListResponse(
@@ -105,7 +99,8 @@ class StatementService:
                 detail="You do not have permission to delete this statement",
             )
 
-        delete_upload(str(current_user.id), statement.stored_file_name)
+        stored_path = Path(settings.upload_dir) / statement.stored_file_name
+        delete_file(str(stored_path))
         self.repo.delete(self.db, statement)
 
         return StatementDeleteResponse(message="Statement deleted successfully")
