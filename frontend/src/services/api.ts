@@ -8,9 +8,10 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('spendsense_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
+
+if (token && token !== 'undefined' && token !== 'null') {
+  config.headers.Authorization = `Bearer ${token}`
+}
   return config
 })
 
