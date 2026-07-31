@@ -18,7 +18,7 @@ class UserSettings(Base):
     )
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="INR")
     language: Mapped[str] = mapped_column(String(8), nullable=False, default="en")
-    theme: Mapped[str] = mapped_column(String(16), nullable=False, default="light")
+    theme: Mapped[str] = mapped_column(String(16), nullable=False, default="dark")
     date_format: Mapped[str] = mapped_column(String(16), nullable=False, default="YYYY-MM-DD")
     email_notifications: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     push_notifications: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
