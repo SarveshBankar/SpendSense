@@ -26,7 +26,7 @@ def upgrade() -> None:
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("message", sa.String(512), nullable=False),
         sa.Column("severity", sa.String(16), nullable=False, server_default="info"),
-        sa.Column("read", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("read", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("metadata_json", sa.String(1024), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
