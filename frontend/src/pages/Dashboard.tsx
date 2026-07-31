@@ -204,7 +204,7 @@ export default function Dashboard() {
                 Detailed View →
               </button>
             </div>
-            <IncomeExpenseBarChart transactions={txns} />
+            <div className="text-white p-6">Chart temporarily disabled</div>
           </Card>
         </motion.div>
 
@@ -485,8 +485,8 @@ export default function Dashboard() {
           className="xl:col-span-2"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Card><ExpenseLineChart transactions={txns} /></Card>
-            <Card><CategoryPieChart transactions={txns} /></Card>
+            <Card>Charts temporarily disabled</Card>
+           <Card>Charts temporarily disabled</Card>
           </div>
         </motion.div>
 
